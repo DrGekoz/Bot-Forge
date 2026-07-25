@@ -804,17 +804,20 @@ async def on_ready() -> None:
             tts_personality=tts_personality,
         )
         try:
-            await discord_bot.tree.sync()
-            setup_voice_commands(
-                discord_bot,
-                voice_manager,
-                bot_id=discord_bot.user.id,
-                bot_name=config.get("tts_personality", "Bot"),
-                tts_personality=config.get("tts_personality", ""),
-                default_referee_name=config.get("referee_bot_name", ""),
-            )
-            await discord_bot.tree.sync()
-            logging.info("Voice chat module initialized")
+            if config.get("register_commands", True):
+                await discord_bot.tree.sync()
+                setup_voice_commands(
+                    discord_bot,
+                    voice_manager,
+                    bot_id=discord_bot.user.id,
+                    bot_name=config.get("tts_personality", "Bot"),
+                    tts_personality=config.get("tts_personality", ""),
+                    default_referee_name=config.get("referee_bot_name", ""),
+                )
+                await discord_bot.tree.sync()
+                logging.info("Voice chat module initialized")
+            else:
+                logging.info("Skipping voice command registration (register_commands=false)")
         except Exception as e:
             logging.warning("Voice setup failed (OK if bot can't VC): %s", e)
 
