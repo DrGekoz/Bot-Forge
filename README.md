@@ -23,13 +23,17 @@ Every game mode runs with file-based turn management (no Discord message spam be
 ## ✨ Features
 
 - **Voice Chat TTS** — Bots speak through Discord voice channels with cloned voices
+- **Async Pre-Generation Pipeline** — While one bot plays audio in VC, others generate LLM responses + TTS in parallel. Games can finish computationally before audio finishes playing. 0.5s gap between speakers for natural flow.
 - **Multi-Provider** — LM Studio, Ollama, vLLM, OpenAI, Gemini, OpenRouter, OpenCode GO
 - **Per-Bot Personalities** — Each bot gets its own system prompt + voice clone
-- **Persistent Memory** — Bots remember users, preferences, and conversation history across sessions via built-in SQLite store
+- **Persistent Memory** — Bots remember users, preferences, and conversation history across sessions via built-in SQLite store + holographic memory
 - **PocketTTS Voice Cloning** — Upload a 10-second reference, get a voice clone
-- **Hot-Reload** — Edit configs without restarting
-- **No Discord Spam** — Bot-to-bot comms use file-based IPC, not channel messages
+- **File-Based IPC** — Bot-to-bot comms use JSON state files, not Discord channel messages
 - **Memory API Server** — HTTP endpoint for bots to recall/store memories at runtime
+- **Voice Activity Detection** — Optional Silero VAD + faster-whisper for speech-to-text listening mode
+- **Text Channel Mode** — Run games in text channels instead of VC (optional)
+- **"Not Enough Bots" Guard** — Every game validates minimum bot count before starting
+- **Stale Lock Cleanup** — Auto-removes `.llmcord.lock` files from crashed runs on restart
 
 ### Included Game Modes
 
@@ -65,12 +69,14 @@ Setup.bat is an interactive wizard that handles everything. It will **prompt you
 2. Detects any existing bot configs and asks before overwriting
 3. Installs Python dependencies (discord.py, httpx, openai, pyyaml)
 4. Asks how many bots you want (minimum 2 for games)
-5. Prints step-by-step Discord Developer Portal instructions
+5. Prints step-by-step Discord Developer Portal instructions **(MESSAGE CONTENT INTENT is CRITICAL)**
 6. For each bot: collects **name, token, personality prompt, voice reference**
-7. Installs PocketTTS if not already present (or detects existing)
-8. Creates voice clones from your reference files
-9. Generates all config files and start scripts
-10. Prints invite URLs for each bot
+7. Installs **Silero VAD** + **faster-whisper** for voice listening (optional)
+8. Asks **Text Channel Mode** — run games in text instead of voice (optional)
+9. Installs PocketTTS if not already present (or detects existing)
+10. Creates voice clones from your reference files
+11. Generates all config files and start scripts
+12. Prints invite URLs for each bot
 
 ### 3. Invite Bots
 
@@ -109,19 +115,21 @@ Run `Setup.bat` again at any time. It will detect your existing configs and ask 
 
 ## ⚙️ What Setup.bat Asks You
 
-| Prompt | What it's for |
-|--------|--------------|
-| Number of bots | How many bot instances to create (2-10) |
-| Bot name | Each bot's display identity |
-| Bot token | From Discord Developer Portal |
-| Personality prompt | Multi-line description of how the bot behaves |
-| Voice reference file | 10-second WAV/MP3 for voice cloning (optional) |
-| AI provider | LM Studio, Ollama, OpenAI, Gemini, OpenRouter, etc. |
-| API key | For cloud providers (OpenAI, Gemini, OpenRouter) |
-| Model name | The model each bot uses |
-| Per-bot models? | Same model for all, or different per bot |
-| PocketTTS model? | Download the ~2GB voice model now? |
-| **Persistent memory?** | **Enable SQLite memory store for cross-session recall** |
+|| Prompt | What it's for |
+||--------|--------------|
+|| Number of bots | How many bot instances to create (2-10) |
+|| Bot name | Each bot's display identity |
+|| Bot token | From Discord Developer Portal — **MESSAGE CONTENT INTENT must be enabled** |
+|| Personality prompt | Multi-line description of how the bot behaves |
+|| Voice reference file | 10-second WAV/MP3 for voice cloning (optional) |
+|| AI provider | LM Studio, Ollama, OpenAI, Gemini, OpenRouter, etc. |
+|| API key | For cloud providers (OpenAI, Gemini, OpenRouter) |
+|| Model name | The model each bot uses |
+|| Per-bot models? | Same model for all, or different per bot |
+|| Silero VAD + faster-whisper? | Voice Activity Detection + speech-to-text (optional) |
+|| Text channel mode? | Run games in text channels instead of VC (optional) |
+|| PocketTTS model? | Download the ~2GB voice model now? |
+|| **Persistent memory?** | **Enable SQLite memory store for cross-session recall** |
 
 Everything you enter is saved to local config files. Nothing is sent anywhere.
 
@@ -190,6 +198,7 @@ Bot-Forge/
 ├── core/
 │   ├── llmcord.py             # Bot framework
 │   ├── voice_chat.py          # Game mode engine
+│   ├── new_game_modes.py      # 20 Questions, Show & Tell, Pokemon/MTG battles
 │   ├── memory_store.py        # SQLite persistent memory
 │   ├── memory_server.py       # HTTP API for memory
 │   └── config-example.yaml
@@ -236,8 +245,9 @@ Everything in `bots/`, `voice-refs/`, and `pockettts/voices/` is **yours** — g
 | `/pokemon_battle` | Pokemon-style turn-based battle with persistent leveling | 3 |
 | `/mtg_battle` | Magic the Gathering spell duel with counters | 2 |
 | `/auction_house` | Auction House with budgets and bidding | 2 |
-| `/debate <topic>` | Structured debate with referee scoring | 3 |
-| `/group` | Group VC conversation mode | 2 |
+| `/debate <topic> [rounds]` | Structured debate with referee scoring | 3 |
+| `/council <topic> [rounds]` | Evidence-gated council with blind review | 3 |
+| `/group <start\|stop\|status>` | Group VC conversation mode | 2 |
 
 ---
 
