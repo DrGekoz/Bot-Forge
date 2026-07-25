@@ -496,13 +496,16 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
         existing = voice_manager.get_session(gid)
         if existing:
             return await interaction.response.send_message(f"Already in {existing.vc.channel.name}.", ephemeral=True)
-        await interaction.response.defer(ephemeral=True)
+        # Don't defer — respond directly to avoid interaction timeout during tree sync
         try:
             vc = await channel.connect()
             await voice_manager.create_session(vc, gid)
-            await interaction.followup.send(f"Joined {channel.name}.", ephemeral=True)
+            await interaction.response.send_message(f"Joined {channel.name}.", ephemeral=True)
         except Exception as e:
-            await interaction.followup.send(f"Failed: {e}", ephemeral=True)
+            try:
+                await interaction.response.send_message(f"Failed: {e}", ephemeral=True)
+            except Exception:
+                pass
 
     @bot.tree.command(name="leave", description="Bot leaves the voice channel")
     async def leave_command(interaction: discord.Interaction):
