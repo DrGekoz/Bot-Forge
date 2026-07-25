@@ -238,16 +238,16 @@ Everything in `bots/`, `voice-refs/`, and `pockettts/voices/` is **yours** — g
 
 ### Game Modes
 
-| Command | Description | Min Bots |
-|---------|-------------|----------|
-| `/20_questions <category>` | 20 Questions — one bot picks, others guess | 3 |
-| `/show_tell` | Show & Tell — bots present inventory items, roast each other | 3 |
-| `/pokemon_battle` | Pokemon-style turn-based battle with persistent leveling | 3 |
-| `/mtg_battle` | Magic the Gathering spell duel with counters | 2 |
-| `/auction_house` | Auction House with budgets and bidding | 2 |
-| `/debate <topic> [rounds]` | Structured debate with referee scoring | 3 |
-| `/council <topic> [rounds]` | Evidence-gated council with blind review | 3 |
-| `/group <start\|stop\|status>` | Group VC conversation mode | 2 |
+| Command | Description | Min Bots | Referee |
+|---------|-------------|----------|---------|
+| `/20_questions <category> [referee_id]` | 20 Questions — one bot picks, others guess | 3 | Optional — defaults to last bot |
+| `/show_tell [referee_id]` | Show & Tell — bots present inventory items, roast each other | 3 | Optional — defaults to last bot |
+| `/pokemon_battle [referee_id]` | Pokemon-style turn-based battle with persistent leveling | 3 | Optional — defaults to last bot |
+| `/mtg_battle [referee_id]` | Magic the Gathering spell duel with counters | 2 | Optional — defaults to last bot |
+| `/auction_house [budget]` | Auction House with budgets and bidding | 2 | Auctioneer is first bot |
+| `/debate <topic> [rounds] [referee_id]` | Structured debate with referee scoring | 3 | Optional — defaults to last bot |
+| `/council <topic> [rounds] [referee_id]` | Evidence-gated council with blind review | 3 | Optional — defaults to last bot |
+| `/group <start\|stop\|status>` | Group VC conversation mode | 2 | — |
 
 ---
 

@@ -571,10 +571,19 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
             state = _read_group_state(gid)
             await interaction.followup.send(f"{'Active' if state.get('active') else 'Inactive'}. Mode: {state.get('mode','none')}", ephemeral=True)
 
+    # ── Helper to resolve referee ──
+    def _resolve_referee(bot_ids: list[int], ref_str: Optional[str]) -> int:
+        """Pick referee: specified bot ID, or last bot in VC as default."""
+        if ref_str:
+            rid = int(ref_str.strip("<@!>"))
+            if rid in bot_ids:
+                return rid
+        return bot_ids[-1]
+
     # ── New Game Mode: 20 Questions ──
     @bot.tree.command(name="20_questions", description="20 Questions — one bot picks, others guess, referee scores")
-    @discord.app_commands.describe(category="person, place, or thing (default: thing)")
-    async def twenty_questions_command(interaction: discord.Interaction, category: Optional[str] = "thing"):
+    @discord.app_commands.describe(category="person, place, or thing (default: thing)", referee_id="Optional: Discord ID of the referee bot (leave blank for auto)")
+    async def twenty_questions_command(interaction: discord.Interaction, category: Optional[str] = "thing", referee_id: Optional[str] = None):
         gid = interaction.guild_id; session = voice_manager.get_session(gid)
         if not session: return await interaction.response.send_message("Use `/join` first.", ephemeral=True)
         if session.group_mode: return await interaction.response.send_message("Group mode already active.", ephemeral=True)
@@ -583,7 +592,7 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
         if err: return await interaction.response.send_message(err, ephemeral=True)
         if bot_ids is None: return
 
-        picker_id = bot_ids[0]; ref_id = bot_ids[-1]
+        picker_id = bot_ids[0]; ref_id = _resolve_referee(bot_ids, referee_id)
         await interaction.response.defer(ephemeral=True)
         ngm._init_20questions_state(gid, bot_ids, picker_id, ref_id, category)
         voice_manager.set_group_config(gid, bot_ids, active=True)
@@ -593,7 +602,8 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
 
     # ── New Game Mode: Show & Tell ──
     @bot.tree.command(name="show_tell", description="Show & Tell — bots present items from inventory, roast each other")
-    async def show_tell_command(interaction: discord.Interaction):
+    @discord.app_commands.describe(referee_id="Optional: Discord ID of the referee bot (leave blank for auto)")
+    async def show_tell_command(interaction: discord.Interaction, referee_id: Optional[str] = None):
         gid = interaction.guild_id; session = voice_manager.get_session(gid)
         if not session: return await interaction.response.send_message("Use `/join` first.", ephemeral=True)
         if session.group_mode: return await interaction.response.send_message("Group mode already active.", ephemeral=True)
@@ -602,7 +612,7 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
         if err: return await interaction.response.send_message(err, ephemeral=True)
         if bot_ids is None: return
 
-        ref_id = bot_ids[-1]
+        ref_id = _resolve_referee(bot_ids, referee_id)
         await interaction.response.defer(ephemeral=True)
         ngm._init_showtell_state(gid, bot_ids, ref_id)
         voice_manager.set_group_config(gid, bot_ids, active=True)
@@ -612,7 +622,8 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
 
     # ── New Game Mode: Pokemon Battle ──
     @bot.tree.command(name="pokemon_battle", description="Pokemon Battle — bots fight with stats, level up over time")
-    async def pokemon_battle_command(interaction: discord.Interaction):
+    @discord.app_commands.describe(referee_id="Optional: Discord ID of the referee bot (leave blank for auto)")
+    async def pokemon_battle_command(interaction: discord.Interaction, referee_id: Optional[str] = None):
         gid = interaction.guild_id; session = voice_manager.get_session(gid)
         if not session: return await interaction.response.send_message("Use `/join` first.", ephemeral=True)
         if session.group_mode: return await interaction.response.send_message("Group mode already active.", ephemeral=True)
@@ -621,7 +632,7 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
         if err: return await interaction.response.send_message(err, ephemeral=True)
         if bot_ids is None: return
 
-        ref_id = bot_ids[-1]
+        ref_id = _resolve_referee(bot_ids, referee_id)
         await interaction.response.defer(ephemeral=True)
         ngm._init_battle_state(gid, bot_ids, ref_id, mode="pokemon")
         voice_manager.set_group_config(gid, bot_ids, active=True)
@@ -631,7 +642,8 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
 
     # ── New Game Mode: MTG Battle ──
     @bot.tree.command(name="mtg_battle", description="Magic the Gathering Battle — bots duel with spells, level up over time")
-    async def mtg_battle_command(interaction: discord.Interaction):
+    @discord.app_commands.describe(referee_id="Optional: Discord ID of the referee bot (leave blank for auto)")
+    async def mtg_battle_command(interaction: discord.Interaction, referee_id: Optional[str] = None):
         gid = interaction.guild_id; session = voice_manager.get_session(gid)
         if not session: return await interaction.response.send_message("Use `/join` first.", ephemeral=True)
         if session.group_mode: return await interaction.response.send_message("Group mode already active.", ephemeral=True)
@@ -640,7 +652,7 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
         if err: return await interaction.response.send_message(err, ephemeral=True)
         if bot_ids is None: return
 
-        ref_id = bot_ids[-1]
+        ref_id = _resolve_referee(bot_ids, referee_id)
         await interaction.response.defer(ephemeral=True)
         ngm._init_battle_state(gid, bot_ids, ref_id, mode="mtg")
         voice_manager.set_group_config(gid, bot_ids, active=True)
@@ -650,14 +662,14 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
 
     # ── New Game Mode: Debate ──
     @bot.tree.command(name="debate", description="Start a debate with referee scoring")
-    @discord.app_commands.describe(topic="Debate topic", rounds="Number of rounds")
-    async def debate_command(interaction: discord.Interaction, topic: str, rounds: Optional[int] = 3):
+    @discord.app_commands.describe(topic="Debate topic", rounds="Number of rounds", referee_id="Optional: Discord ID of the referee bot (leave blank for auto)")
+    async def debate_command(interaction: discord.Interaction, topic: str, rounds: Optional[int] = 3, referee_id: Optional[str] = None):
         gid = interaction.guild_id; session = voice_manager.get_session(gid)
         if not session: return await interaction.response.send_message("Use `/join` first.", ephemeral=True)
         bot_ids, err = _check_bots_in_vc(interaction, session, 3)
         if err: return await interaction.response.send_message(err, ephemeral=True)
         if bot_ids is None: return
-        ref_id = bot_ids[-1]
+        ref_id = _resolve_referee(bot_ids, referee_id)
         await interaction.response.defer(ephemeral=True)
         _init_debate_state(gid, bot_ids, ref_id, topic, max(rounds or 3, 1))
         voice_manager.set_group_config(gid, bot_ids, active=True)
@@ -667,14 +679,14 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
 
     # ── Council ──
     @bot.tree.command(name="council", description="Council — bots debate with evidence, referee scores consensus")
-    @discord.app_commands.describe(topic="Council topic", rounds="Number of rounds")
-    async def council_command(interaction: discord.Interaction, topic: str, rounds: Optional[int] = 3):
+    @discord.app_commands.describe(topic="Council topic", rounds="Number of rounds", referee_id="Optional: Discord ID of the referee bot (leave blank for auto)")
+    async def council_command(interaction: discord.Interaction, topic: str, rounds: Optional[int] = 3, referee_id: Optional[str] = None):
         gid = interaction.guild_id; session = voice_manager.get_session(gid)
         if not session: return await interaction.response.send_message("Use `/join` first.", ephemeral=True)
         bot_ids, err = _check_bots_in_vc(interaction, session, 3)
         if err: return await interaction.response.send_message(err, ephemeral=True)
         if bot_ids is None: return
-        ref_id = bot_ids[-1]
+        ref_id = _resolve_referee(bot_ids, referee_id)
         await interaction.response.defer(ephemeral=True)
         _init_council_state(gid, bot_ids, ref_id, topic, max(rounds or 3, 1))
         voice_manager.set_group_config(gid, bot_ids, active=True)
