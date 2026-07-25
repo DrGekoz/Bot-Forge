@@ -475,10 +475,11 @@ class VoiceManager:
 # ═══════════════════════════════════════════════════════
 #  Slash Commands
 # ═══════════════════════════════════════════════════════
-def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""):
+def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality="", default_referee_name=None):
     _BOT_ID = bot_id or (bot.user.id if bot.user else 0)
     _BOT_NAME = bot_name or "Bot"
     _TTS_PERSONALITY = tts_personality
+    _DEFAULT_REFEREE_NAME = default_referee_name
 
     def _check_bots_in_vc(interaction, session, minimum=2):
         """Check enough bots are in VC and return member IDs."""
@@ -572,12 +573,18 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
             await interaction.followup.send(f"{'Active' if state.get('active') else 'Inactive'}. Mode: {state.get('mode','none')}", ephemeral=True)
 
     # ── Helper to resolve referee ──
-    def _resolve_referee(bot_ids: list[int], ref_str: Optional[str]) -> int:
-        """Pick referee: specified bot ID, or last bot in VC as default."""
+    def _resolve_referee(bot_ids: list[int], ref_str: Optional[str], vc_channel=None) -> int:
+        """Pick referee: specified bot ID/@mention, or named referee bot, or last bot in VC."""
         if ref_str:
             rid = int(ref_str.strip("<@!>"))
             if rid in bot_ids:
                 return rid
+        # Check for designated referee by name (e.g. "Rogan")
+        if _DEFAULT_REFEREE_NAME and vc_channel:
+            for member in vc_channel.members:
+                if member.bot and _DEFAULT_REFEREE_NAME.lower() in member.display_name.lower():
+                    if member.id in bot_ids:
+                        return member.id
         return bot_ids[-1]
 
     # ── New Game Mode: 20 Questions ──
@@ -592,7 +599,7 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
         if err: return await interaction.response.send_message(err, ephemeral=True)
         if bot_ids is None: return
 
-        picker_id = bot_ids[0]; ref_id = _resolve_referee(bot_ids, referee_id)
+        picker_id = bot_ids[0]; ref_id = _resolve_referee(bot_ids, referee_id, session.vc.channel if session and session.vc else None)
         await interaction.response.defer(ephemeral=True)
         ngm._init_20questions_state(gid, bot_ids, picker_id, ref_id, category)
         voice_manager.set_group_config(gid, bot_ids, active=True)
@@ -612,7 +619,7 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
         if err: return await interaction.response.send_message(err, ephemeral=True)
         if bot_ids is None: return
 
-        ref_id = _resolve_referee(bot_ids, referee_id)
+        ref_id = _resolve_referee(bot_ids, referee_id, session.vc.channel if session and session.vc else None)
         await interaction.response.defer(ephemeral=True)
         ngm._init_showtell_state(gid, bot_ids, ref_id)
         voice_manager.set_group_config(gid, bot_ids, active=True)
@@ -632,7 +639,7 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
         if err: return await interaction.response.send_message(err, ephemeral=True)
         if bot_ids is None: return
 
-        ref_id = _resolve_referee(bot_ids, referee_id)
+        ref_id = _resolve_referee(bot_ids, referee_id, session.vc.channel if session and session.vc else None)
         await interaction.response.defer(ephemeral=True)
         ngm._init_battle_state(gid, bot_ids, ref_id, mode="pokemon")
         voice_manager.set_group_config(gid, bot_ids, active=True)
@@ -652,7 +659,7 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
         if err: return await interaction.response.send_message(err, ephemeral=True)
         if bot_ids is None: return
 
-        ref_id = _resolve_referee(bot_ids, referee_id)
+        ref_id = _resolve_referee(bot_ids, referee_id, session.vc.channel if session and session.vc else None)
         await interaction.response.defer(ephemeral=True)
         ngm._init_battle_state(gid, bot_ids, ref_id, mode="mtg")
         voice_manager.set_group_config(gid, bot_ids, active=True)
@@ -669,7 +676,7 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
         bot_ids, err = _check_bots_in_vc(interaction, session, 3)
         if err: return await interaction.response.send_message(err, ephemeral=True)
         if bot_ids is None: return
-        ref_id = _resolve_referee(bot_ids, referee_id)
+        ref_id = _resolve_referee(bot_ids, referee_id, session.vc.channel if session and session.vc else None)
         await interaction.response.defer(ephemeral=True)
         _init_debate_state(gid, bot_ids, ref_id, topic, max(rounds or 3, 1))
         voice_manager.set_group_config(gid, bot_ids, active=True)
@@ -686,7 +693,7 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
         bot_ids, err = _check_bots_in_vc(interaction, session, 3)
         if err: return await interaction.response.send_message(err, ephemeral=True)
         if bot_ids is None: return
-        ref_id = _resolve_referee(bot_ids, referee_id)
+        ref_id = _resolve_referee(bot_ids, referee_id, session.vc.channel if session and session.vc else None)
         await interaction.response.defer(ephemeral=True)
         _init_council_state(gid, bot_ids, ref_id, topic, max(rounds or 3, 1))
         voice_manager.set_group_config(gid, bot_ids, active=True)
@@ -775,6 +782,7 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
                 ephemeral=True)
 
         # ── Resolve referee ───────────────────────────────────
+        vc_channel = session.vc.channel if session and session.vc else None
         ref_id = bot_ids[-1]  # default: last bot in VC
         if referee:
             try:
@@ -793,6 +801,13 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
                     "❌ Invalid referee. @mention a bot that's in VC.\n"
                     "Example: `referee:@BotA`",
                     ephemeral=True)
+        elif _DEFAULT_REFEREE_NAME and vc_channel:
+            # Check for designated referee by name
+            for member in vc_channel.members:
+                if member.bot and _DEFAULT_REFEREE_NAME.lower() in member.display_name.lower():
+                    if member.id in bot_ids:
+                        ref_id = member.id
+                        break
 
         # ── Launch the game ───────────────────────────────────
         await interaction.response.defer(ephemeral=True)

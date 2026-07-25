@@ -485,6 +485,38 @@ goto :bootstrap_loop
 
 :bootstrap_done
 
+:: ── Choose referee bot ──
+echo.
+echo %ESC%[96m[9.5/9] Designate Referee Bot%ESC%[0m
+echo.
+echo One bot acts as the REFEREE for all games ^(judges debates, scores battles, etc.^).
+echo The other bots will always defer to this bot for judging.
+echo.
+set REFEREE_NAME=
+for %%n in (%BOT_NAMES%) do (
+    if "!REFEREE_NAME!"=="" (
+        choice /c:YN /n /m "Is %%n the referee? (Y/N, default Y for first bot): "
+        if not errorlevel 2 (
+            set REFEREE_NAME=%%n
+        )
+    )
+)
+if "!REFEREE_NAME!"=="" (
+    for %%f in ("bots\*") do set REFEREE_NAME=%%~nxf
+    echo %ESC%[93mDefaulting to first bot as referee.%ESC%[0m
+)
+echo %ESC%[92m✅ Referee: !REFEREE_NAME!%ESC%[0m
+
+:: Write referee_bot_name to ALL bot configs so every instance knows who the ref is
+setlocal enabledelayedexpansion
+for /d %%d in (bots\*) do (
+    set "CFG=%%d\config.yaml"
+    if exist "!CFG!" (
+        echo referee_bot_name: "!REFEREE_NAME!" >> "!CFG!"
+    )
+)
+endlocal
+
 :: ── Generate Launchers ──
 echo.
 echo %ESC%[96mGenerating start script...%ESC%[0m

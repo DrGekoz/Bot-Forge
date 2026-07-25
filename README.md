@@ -121,8 +121,10 @@ You can now paste that ID into commands to set referees.
 | `mode` | Game type: `debate`, `council`, `auction`, `20questions`, `show_tell`, `pokemon`, `mtg` |
 | `topic` | Required for `debate` / `council` — the discussion topic |
 | `rounds` | Number of rounds (default: 3) |
-| `referee` | @mention the bot to judge. Leave blank for auto (first bot in VC = ref) |
+| `referee` | @mention the bot to judge. Leave blank for auto — the designated referee bot (set during Setup.bat) is used by default |
 | `category` | For `20questions`: `person`, `place`, or `thing` (default: thing) |
+
+**Designated Referee:** During Setup.bat, you chose one bot as the permanent referee. That bot will automatically judge all games unless you override with `referee:@Bot` in the command.
 
 **Examples:**
 ```
@@ -174,6 +176,7 @@ Run `Setup.bat` again at any time. It will detect your existing configs and ask 
 | Text channel mode? | Run games in text channels instead of VC (optional) |
 | PocketTTS model? | Download the ~2GB voice model now? |
 | **Persistent memory?** | **Enable SQLite memory store for cross-session recall** |
+| **Referee bot?** | Which bot judges all games — asked for each bot name during setup |
 
 Everything you enter is saved to local config files. Nothing is sent anywhere.
 

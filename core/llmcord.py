@@ -811,6 +811,7 @@ async def on_ready() -> None:
                 bot_id=discord_bot.user.id,
                 bot_name=config.get("tts_personality", "Bot"),
                 tts_personality=config.get("tts_personality", ""),
+                default_referee_name=config.get("referee_bot_name", ""),
             )
             await discord_bot.tree.sync()
             logging.info("Voice chat module initialized")
