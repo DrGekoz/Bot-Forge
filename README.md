@@ -100,6 +100,30 @@ This single command launches the memory server (if enabled), PocketTTS (if insta
 
 Join a voice channel in Discord. You'll need **Developer Mode** enabled to copy bot IDs.
 
+#### Quick Start Flow
+
+**1. Invite bots to your server** — use the invite URLs from Setup.bat output
+
+**2. Get bots into voice chat** — run this on EACH bot individually:
+```
+/join
+```
+Each bot must join the VC separately (they're separate Discord accounts).
+
+**3. Start a game** — run this on ANY ONE bot:
+```
+/game mode:debate topic:"Cats vs Dogs" rounds:3
+```
+or use an individual command:
+```
+/dream_weave
+/auction_house
+```
+
+That's it — no `/group start` needed. The game command auto-detects all bots in VC, assigns roles, and starts the turn-based conversation. The bots will talk to each other in voice chat automatically.
+
+> **For free-form conversation** (no game rules): use `/group start` after all bots join.
+
 #### Enable Developer Mode
 
 1. Open Discord **User Settings** (gear icon bottom-left)
