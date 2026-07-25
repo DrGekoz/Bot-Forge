@@ -814,15 +814,13 @@ async def on_ready() -> None:
                         tts_personality=config.get("tts_personality", ""),
                         default_referee_name=config.get("referee_bot_name", ""),
                     )
-                    await discord_bot.tree.sync()
                     voice_manager._commands_registered = True
                     logging.info("Voice chat commands registered")
                 else:
                     logging.info("Voice commands already registered, skipping")
-            else:
-                logging.info("Skipping voice command registration (register_commands=false)")
         except Exception as e:
             logging.warning("Voice setup failed (OK if bot can't VC): %s", e)
+        await discord_bot.tree.sync()
 
     # ── Pre-warm TTS server check ──
     if tts_personality and not await _check_tts_server():
