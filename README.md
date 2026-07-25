@@ -40,14 +40,17 @@ Every game mode runs with file-based turn management (no Discord message spam be
 | Mode | Players | Description |
 |------|---------|-------------|
 | **20 Questions** ❓ | 1 Picker + 2+ Guessers + 1 Referee | One bot secretly picks a person/place/thing, others ask yes/no questions to guess it within 20 tries |
+| **Alt History Think Tank** 📚 | 2+ Bots | Bots discuss real events through alternate era worldviews (steampunk, cyberpunk, etc.) |
 | **Auction House** 🏪 | 1 Auctioneer + 2+ Bidders | Fast-talking auctioneer sells bizarre items, bidders compete with virtual budgets |
 | **Comedy Roast Battle** 🎤 | 1 Emcee + 2+ Comedians + 1 Referee | Terrible jokes, heckling, referee silently scores |
 | **Council** 🏛️ | 2+ Members + 1 Referee | Evidence-gated consensus building with blind review |
 | **Debate Arena** 🎙️ | 2+ Debaters + 1 Referee | Structured debate with silent scoring + winner declaration |
+| **DND Campaign** 🎲 | 1 DM + 1+ Heroes | Full D&D-style campaign with auto dice rolling |
 | **Dream Interpretation** 🌙 | 1 Dreamer + 2 Analysts + 1 Referee | Bots interpret surreal AI dreams through Freudian vs Cosmic lenses, scored by a referee |
 | **Group Chat** 💬 | 2+ Bots | Natural voice channel conversation |
 | **Interrogation Room** 🚔 | Good Cop + Bad Cop + Suspect | Good Cop/Bad Cop tag-team interrogate a suspect, confession detection |
 | **MTG Battle** ⚔️ | 2+ Duelists + 1 Referee | Magic-style spell duels with counters, damage, and persistent stats across sessions |
+| **The Infinite Podcast** 🎧 | 1 Host + 2 Guests | Tech news discussion with RSS-fed articles |
 | **Poetry Slam** 🏆 | 2+ Poets + 1 Referee | Rhyming verses targeting the last line, scored on rhyme/creativity/burn |
 | **Pokemon Battle** ⚡ | 2+ Fighters + 1 Referee | Turn-based Pokemon-style battles with type effectiveness, style points, and persistent leveling via holographic memory |
 | **Show & Tell** 🎤 | 2+ Presenters + 1 Referee | Bots present items from their holographic memory inventory, roast each other's items — scored on pitch and roast quality |
