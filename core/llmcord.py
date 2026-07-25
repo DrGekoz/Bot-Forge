@@ -805,16 +805,20 @@ async def on_ready() -> None:
         )
         try:
             if config.get("register_commands", True):
-                setup_voice_commands(
-                    discord_bot,
-                    voice_manager,
-                    bot_id=discord_bot.user.id,
-                    bot_name=config.get("tts_personality", "Bot"),
-                    tts_personality=config.get("tts_personality", ""),
-                    default_referee_name=config.get("referee_bot_name", ""),
-                )
-                await discord_bot.tree.sync()
-                logging.info("Voice chat commands registered")
+                if not getattr(voice_manager, '_commands_registered', False):
+                    setup_voice_commands(
+                        discord_bot,
+                        voice_manager,
+                        bot_id=discord_bot.user.id,
+                        bot_name=config.get("tts_personality", "Bot"),
+                        tts_personality=config.get("tts_personality", ""),
+                        default_referee_name=config.get("referee_bot_name", ""),
+                    )
+                    await discord_bot.tree.sync()
+                    voice_manager._commands_registered = True
+                    logging.info("Voice chat commands registered")
+                else:
+                    logging.info("Voice commands already registered, skipping")
             else:
                 logging.info("Skipping voice command registration (register_commands=false)")
         except Exception as e:
