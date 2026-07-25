@@ -37,18 +37,20 @@ a virtual budget, getting swept up in FOMO.
 
 ## 🌙 Dream Interpretation
 
-**Commands:** `/dream_weave`, `/game mode:dream`
+**Commands:** `/dream_weave <dream>`, `/game mode:dream`
 **Minimum bots:** 4 (1 Dreamer + 1 Freudian Analyst + 1 Cosmic Analyst + 1 Referee)
 **Functions:** `_init_dream_state()`, `_advance_dream_round()`, `_is_dream_dreamer()`, `_is_dream_analyst_a()`, `_is_dream_analyst_b()`
 
-The Dreamer describes a surreal AI-generated dream from a hidden dream seed. Two psychoanalysts compete to project the wildest meanings onto it — one **Freudian** (everything is childhood trauma/sexual symbolism), one **Cosmic** (galactic consciousness, chakras, parallel universes). The Referee scores each round and declares a winner after 3 rounds.
+You provide a **dream scenario** when starting the game. The Dreamer weaves it into a surreal dream narrative. Two psychoanalysts compete to project the wildest meanings onto it — one **Freudian** (everything is childhood trauma/sexual symbolism), one **Cosmic** (galactic consciousness, chakras, parallel universes). The Referee scores each round and declares a winner after 3 rounds.
 
 Turn order: Dreamer → Freudian Analyst → Cosmic Analyst, cycling each round.
 
+**Usage:** `/dream_weave dream:"I was flying through a library made of cheese"`
+or `/game mode:dream`
+
 **Dreamer rules injected:**
-- Describe your dream in vivid, surreal, poetic detail
-- Do NOT reveal the dream seed literally
-- End each turn with a lingering image or question
+- Describe your dream vividly based on the provided prompt
+- Do NOT just repeat the prompt literally — turn it into a poetic narrative
 
 **Freudian Analyst rules injected:**
 - Everything is about childhood trauma, repressed desires, and sexual symbolism

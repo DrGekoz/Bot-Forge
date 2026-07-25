@@ -172,7 +172,7 @@ You can now paste that ID into commands to set referees.
 /show_tell referee_id:<ID>
 /pokemon_battle referee_id:<ID>
 /mtg_battle referee_id:<ID>
-/dream_weave referee_id:<ID>
+/dream_weave dream:"describe your dream" referee_id:<ID>
 /group start       # Free-form conversation mode
 /group stop        # End the session
 ```
