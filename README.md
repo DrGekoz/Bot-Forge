@@ -51,6 +51,7 @@ Every game mode runs with file-based turn management (no Discord message spam be
 | **Poetry Slam** 🏆 | 2+ Poets + 1 Referee | Rhyming verses targeting the last line, scored on rhyme/creativity/burn |
 | **Pokemon Battle** ⚡ | 2+ Fighters + 1 Referee | Turn-based Pokemon-style battles with type effectiveness, style points, and persistent leveling via holographic memory |
 | **Show & Tell** 🎤 | 2+ Presenters + 1 Referee | Bots present items from their holographic memory inventory, roast each other's items — scored on pitch and roast quality |
+| **Turing Test Panel** 🤖 | 3+ Panelists + 1 Referee | "Who's human?" — plot twist: they're ALL AI |
 
 ---
 
