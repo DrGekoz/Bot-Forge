@@ -98,14 +98,58 @@ This single command launches the memory server (if enabled), PocketTTS (if insta
 
 ### 5. Play!
 
-Join a voice channel in Discord and use:
+Join a voice channel in Discord. You'll need **Developer Mode** enabled to copy bot IDs.
+
+#### Enable Developer Mode
+
+1. Open Discord **User Settings** (gear icon bottom-left)
+2. Go to **Advanced** → **Developer Mode** → toggle **ON**
+3. Right-click any bot in the voice channel member list → **Copy ID**
+
+You can now paste that ID into commands to set referees.
+
+#### Starting a Game
+
+**Option A — Unified `/game` command (recommended):**
+
+```
+/game mode:<type> topic:"..." rounds:N referee:@Bot
+```
+
+| Parameter | What it's for |
+|---|---|
+| `mode` | Game type: `debate`, `council`, `auction`, `20questions`, `show_tell`, `pokemon`, `mtg` |
+| `topic` | Required for `debate` / `council` — the discussion topic |
+| `rounds` | Number of rounds (default: 3) |
+| `referee` | @mention the bot to judge. Leave blank for auto (first bot in VC = ref) |
+| `category` | For `20questions`: `person`, `place`, or `thing` (default: thing) |
+
+**Examples:**
+```
+/game mode:debate topic:"Cats are better than dogs" rounds:3 referee:@JudgeBot
+/game mode:20questions category:person referee:@RefBot
+/game mode:auction referee:@AuctioneerBot
+/game mode:pokemon
+```
+
+> ❌ If you miss a required parameter (e.g. no `topic` for debate), the bot will show an error with the correct format. The command **never** sends your input to the LLM — it only routes to the game engine.
+
+**Option B — Individual commands:**
 
 ```
 /join              # Bot joins your VC
-/auction_house     # Start Auction House
-/debate <topic>    # Start a debate
-/group             # Start group conversation
+/debate topic:... rounds:3 referee_id:<ID>
+/council topic:... rounds:3 referee_id:<ID>
+/auction_house budget:10000
+/20_questions category:thing referee_id:<ID>
+/show_tell referee_id:<ID>
+/pokemon_battle referee_id:<ID>
+/mtg_battle referee_id:<ID>
+/group start       # Free-form conversation mode
+/group stop        # End the session
 ```
+
+> **Tip:** Use `/game mode:...` for a unified experience with better error messages and the @mention-referee pattern.
 
 ### 6. Re-running Setup
 
@@ -115,21 +159,21 @@ Run `Setup.bat` again at any time. It will detect your existing configs and ask 
 
 ## ⚙️ What Setup.bat Asks You
 
-|| Prompt | What it's for |
-||--------|--------------|
-|| Number of bots | How many bot instances to create (2-10) |
-|| Bot name | Each bot's display identity |
-|| Bot token | From Discord Developer Portal — **MESSAGE CONTENT INTENT must be enabled** |
-|| Personality prompt | Multi-line description of how the bot behaves |
-|| Voice reference file | 10-second WAV/MP3 for voice cloning (optional) |
-|| AI provider | LM Studio, Ollama, OpenAI, Gemini, OpenRouter, etc. |
-|| API key | For cloud providers (OpenAI, Gemini, OpenRouter) |
-|| Model name | The model each bot uses |
-|| Per-bot models? | Same model for all, or different per bot |
-|| Silero VAD + faster-whisper? | Voice Activity Detection + speech-to-text (optional) |
-|| Text channel mode? | Run games in text channels instead of VC (optional) |
-|| PocketTTS model? | Download the ~2GB voice model now? |
-|| **Persistent memory?** | **Enable SQLite memory store for cross-session recall** |
+| Prompt | What it's for |
+|---|---|
+| Number of bots | How many bot instances to create (2-10) |
+| Bot name | Each bot's display identity |
+| Bot token | From Discord Developer Portal — **MESSAGE CONTENT INTENT must be enabled** |
+| Personality prompt | Multi-line description of how the bot behaves |
+| Voice reference file | 10-second WAV/MP3 for voice cloning (optional) |
+| AI provider | LM Studio, Ollama, OpenAI, Gemini, OpenRouter, etc. |
+| API key | For cloud providers (OpenAI, Gemini, OpenRouter) |
+| Model name | The model each bot uses |
+| Per-bot models? | Same model for all, or different per bot |
+| Silero VAD + faster-whisper? | Voice Activity Detection + speech-to-text (optional) |
+| Text channel mode? | Run games in text channels instead of VC (optional) |
+| PocketTTS model? | Download the ~2GB voice model now? |
+| **Persistent memory?** | **Enable SQLite memory store for cross-session recall** |
 
 Everything you enter is saved to local config files. Nothing is sent anywhere.
 

@@ -694,7 +694,155 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
         session.enable_group_mode(_BOT_ID, _BOT_NAME, _TTS_PERSONALITY, other_ids)
         await interaction.followup.send(f"🏛️ Council: {topic} | Referee: <@{ref_id}> | {max(rounds or 3, 1)} rounds", ephemeral=True)
 
-# ═══════════════════════════════════════════════════════
-#  Legacy compatibility stubs for original LLMCord
-# ═══════════════════════════════════════════════════════
+    # ── Universal /game command ─────────────────────────────────
+    GAME_MODES_INFO = {
+        "debate": {"min": 3, "desc": "Bots debate a topic with referee scoring", "needs_topic": True,
+                   "example": "/game mode:debate topic:\"AI will save us\" rounds:3 referee:@BotA"},
+        "council": {"min": 3, "desc": "Bots debate with evidence, referee scores consensus", "needs_topic": True,
+                    "example": "/game mode:council topic:\"climate policy\" rounds:5"},
+        "auction": {"min": 2, "desc": "Auction house — bots bid on absurd items", "needs_topic": False,
+                    "example": "/game mode:auction referee:@BotA"},
+        "20questions": {"min": 3, "desc": "20 Questions — one picks, others guess", "needs_topic": False,
+                        "example": "/game mode:20questions category:person referee:@BotA"},
+        "show_tell": {"min": 3, "desc": "Show & Tell — bots present items, roast each other", "needs_topic": False,
+                      "example": "/game mode:show_tell referee:@BotA"},
+        "pokemon": {"min": 3, "desc": "Pokémon Battle — persistent stats, level up over time", "needs_topic": False,
+                    "example": "/game mode:pokemon referee:@BotA"},
+        "mtg": {"min": 2, "desc": "Magic: The Gathering — spells & counters", "needs_topic": False,
+                "example": "/game mode:mtg referee:@BotA"},
+    }
+
+    @bot.tree.command(name="game", description="🎮 Start a game between bots in voice chat")
+    @discord.app_commands.describe(
+        mode="Game mode — pick from: debate, council, auction, 20questions, show_tell, pokemon, mtg",
+        topic="Topic — REQUIRED for debate/council",
+        rounds="Number of rounds (default: 3)",
+        referee="@mention the bot to be referee (leave blank for auto)",
+        category="Category for 20 Questions: person, place, or thing",
+    )
+    async def game_command(
+        interaction: discord.Interaction,
+        mode: str,
+        topic: Optional[str] = None,
+        rounds: Optional[int] = None,
+        referee: Optional[str] = None,
+        category: Optional[str] = "thing",
+    ):
+        """Universal game launcher with validation and help messages."""
+        gid = interaction.guild_id
+        session = voice_manager.get_session(gid)
+        if not session:
+            return await interaction.response.send_message(
+                "❌ **I'm not in a voice channel.**\n"
+                "Use `/join` first, then try:\n"
+                "`/game mode:debate topic:\"your topic\" rounds:3 referee:@BotA`",
+                ephemeral=True)
+        if session.group_mode:
+            return await interaction.response.send_message(
+                "❌ **A game is already running.**\n"
+                "Use `/group stop` to end it first, then start a new one.",
+                ephemeral=True)
+
+        mode = mode.lower().strip()
+        if mode not in GAME_MODES_INFO:
+            fmt = "\n".join(f"• `{m}` — {info['desc']}"
+                           for m, info in sorted(GAME_MODES_INFO.items()))
+            return await interaction.response.send_message(
+                f"❌ **Unknown game mode:** `{mode}`\n\n"
+                f"Available modes:\n{fmt}\n\n"
+                f"**Usage:** `/game mode:<mode> topic:\"...\" rounds:N referee:@Bot`\n"
+                f"**Example:** `/game mode:debate topic:\"Cats vs Dogs\" rounds:3`",
+                ephemeral=True)
+
+        info = GAME_MODES_INFO[mode]
+        bot_ids, err = _check_bots_in_vc(interaction, session, info["min"])
+        if err:
+            return await interaction.response.send_message(err, ephemeral=True)
+        if bot_ids is None:
+            return
+
+        # ── Validate required parameters ──────────────────────
+        missing = []
+        if info["needs_topic"] and not topic:
+            missing.append("**topic** (required for this mode)")
+
+        if missing:
+            return await interaction.response.send_message(
+                f"❌ **Missing required parameter{'s' if len(missing) > 1 else ''}:**\n"
+                + "\n".join(f"• {m}" for m in missing) +
+                f"\n\n**Correct usage:**\n`{info['example']}`\n\n"
+                f"Tip: @mention the bot you want as referee in the `referee` field!",
+                ephemeral=True)
+
+        # ── Resolve referee ───────────────────────────────────
+        ref_id = bot_ids[-1]  # default: last bot in VC
+        if referee:
+            try:
+                rid = int(referee.strip("<@!>"))
+                if rid in bot_ids:
+                    ref_id = rid
+                else:
+                    ref_names = " ".join(f"<@{b}>" for b in bot_ids)
+                    return await interaction.response.send_message(
+                        f"❌ <@{rid}> isn't in the voice channel.\n"
+                        f"Bots in VC: {ref_names}\n\n"
+                        f"Pick one as referee by @mentioning them in the `referee` field.",
+                        ephemeral=True)
+            except ValueError:
+                return await interaction.response.send_message(
+                    "❌ Invalid referee. @mention a bot that's in VC.\n"
+                    "Example: `referee:@BotA`",
+                    ephemeral=True)
+
+        # ── Launch the game ───────────────────────────────────
+        await interaction.response.defer(ephemeral=True)
+        actual_rounds = max(rounds or 3, 1)
+
+        try:
+            if mode == "debate":
+                _init_debate_state(gid, bot_ids, ref_id, topic or "general", actual_rounds)
+            elif mode == "council":
+                _init_council_state(gid, bot_ids, ref_id, topic or "general", actual_rounds)
+            elif mode == "auction":
+                _init_auction_state(gid, bot_ids, ref_id)
+            elif mode == "20questions":
+                picker_id = bot_ids[0]
+                if _NGM_AVAILABLE:
+                    ngm._init_20questions_state(gid, bot_ids, picker_id, ref_id, category or "thing")
+                else:
+                    return await interaction.followup.send("❌ new_game_modes module not available.", ephemeral=True)
+            elif mode == "show_tell":
+                if _NGM_AVAILABLE:
+                    ngm._init_showtell_state(gid, bot_ids, ref_id)
+                else:
+                    return await interaction.followup.send("❌ new_game_modes module not available.", ephemeral=True)
+            elif mode == "pokemon":
+                if _NGM_AVAILABLE:
+                    ngm._init_battle_state(gid, bot_ids, ref_id, mode="pokemon")
+                else:
+                    return await interaction.followup.send("❌ new_game_modes module not available.", ephemeral=True)
+            elif mode == "mtg":
+                if _NGM_AVAILABLE:
+                    ngm._init_battle_state(gid, bot_ids, ref_id, mode="mtg")
+                else:
+                    return await interaction.followup.send("❌ new_game_modes module not available.", ephemeral=True)
+            else:
+                return await interaction.followup.send(f"❌ Mode `{mode}` not implemented yet.", ephemeral=True)
+
+            voice_manager.set_group_config(gid, bot_ids, active=True)
+            other_ids = [b for b in bot_ids if b != _BOT_ID]
+            session.enable_group_mode(_BOT_ID, _BOT_NAME, _TTS_PERSONALITY, other_ids)
+            await interaction.followup.send(
+                f"🎮 **{mode.upper()}** started!\n"
+                f"👤 Referee: <@{ref_id}>\n"
+                f"🤖 Participants: {' '.join(f'<@{b}>' for b in bot_ids if b != ref_id)}\n"
+                f"ℹ️ Bots will take turns in voice chat.",
+                ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"Failed to start game '{mode}': {e}")
+            await interaction.followup.send(
+                f"❌ **Failed to start {mode}:** {e}\n"
+                f"Try the correct format:\n`{info['example']}`",
+                ephemeral=True)
 _shared_state_dir = STATE_DIR  # alias for original imports

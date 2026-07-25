@@ -922,6 +922,14 @@ async def on_message(new_msg: discord.Message) -> None:
         logging.info("Skipping message with empty content (TextDisplay)")
         return
 
+    # ── Game command guard — don't send to LLM ──────────
+    stripped = new_msg.content.strip()
+    if discord_bot.user.mentioned_in(new_msg):
+        stripped = stripped.removeprefix(discord_bot.user.mention).lstrip()
+    if stripped.lower().startswith("/game") or stripped.lower().startswith("/(game)"):
+        logging.info(f"Ignoring game command (routed via slash command handler): {stripped[:80]}")
+        return
+
     if new_msg.channel.type == discord.ChannelType.private:
         if not config.get("allow_dms", True):
             return
