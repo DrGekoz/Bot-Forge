@@ -95,8 +95,27 @@ def _write_group_state(guild_id: int, state: dict):
         json.dump(state, f, indent=2)
 
 # Stub imports for downstream llmcord.py compatibility
+def _init_council_state(guild_id, turn_order, referee_id, topic, max_rounds=3):
+    """Create initial Council state — bots debate with evidence, referee scores."""
+    member_ids = [bid for bid in turn_order if bid != referee_id]
+    state = {
+        "active": True, "guild_id": guild_id, "mode": "council",
+        "turn_order": turn_order, "current_index": 0,
+        "referee_id": referee_id, "member_ids": member_ids,
+        "council_topic": topic, "round_number": 1,
+        "max_rounds": max_rounds, "round_phase": "evidence",
+        "scores": {}, "round_summaries": {},
+        "evidence_log": {}, "consensus": False,
+        "context_exchanges": [],
+        "waiting_for_prompt": False,
+        "last_speaker_time": time.time(), "version": 0,
+        "last_message": {"author_id": 0, "author_name": "System",
+            "text": f"🏛️ Council convened! Topic: {topic}\\nReferee scores after each round."},
+    }
+    _write_group_state(guild_id, state)
+    return state
+
 def _init_debate_state(*a, **kw): return {}
-def _init_council_state(*a, **kw): return {}
 def _init_podcast_state(*a, **kw): return {}
 def _init_ttrpg_state(*a, **kw): return {}
 def _fetch_podcast_articles(*a, **kw): return []
@@ -480,6 +499,23 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
         other_ids = [b for b in bot_ids if b != _BOT_ID]
         session.enable_group_mode(_BOT_ID, _BOT_NAME, _TTS_PERSONALITY, other_ids)
         await interaction.followup.send(f"🎙️ Debate: {topic} | Referee: <@{ref_id}> | {max(rounds or 3, 1)} rounds", ephemeral=True)
+
+    # ── Council ──
+    @bot.tree.command(name="council", description="Council — bots debate with evidence, referee scores consensus")
+    @discord.app_commands.describe(topic="Council topic", rounds="Number of rounds")
+    async def council_command(interaction: discord.Interaction, topic: str, rounds: Optional[int] = 3):
+        gid = interaction.guild_id; session = voice_manager.get_session(gid)
+        if not session: return await interaction.response.send_message("Use `/join` first.", ephemeral=True)
+        bot_ids, err = _check_bots_in_vc(interaction, session, 3)
+        if err: return await interaction.response.send_message(err, ephemeral=True)
+        if bot_ids is None: return
+        ref_id = bot_ids[-1]
+        await interaction.response.defer(ephemeral=True)
+        _init_council_state(gid, bot_ids, ref_id, topic, max(rounds or 3, 1))
+        voice_manager.set_group_config(gid, bot_ids, active=True)
+        other_ids = [b for b in bot_ids if b != _BOT_ID]
+        session.enable_group_mode(_BOT_ID, _BOT_NAME, _TTS_PERSONALITY, other_ids)
+        await interaction.followup.send(f"🏛️ Council: {topic} | Referee: <@{ref_id}> | {max(rounds or 3, 1)} rounds", ephemeral=True)
 
 # ═══════════════════════════════════════════════════════
 #  Legacy compatibility stubs for original LLMCord
