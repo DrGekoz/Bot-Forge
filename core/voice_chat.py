@@ -236,6 +236,27 @@ class VoiceSession:
         self.other_bot_ids = []
         self._poll_task = None
         self._last_processed_version = -1
+        self._llm_generate = None
+        self._tts_generate = None
+        self._vc_channel_id = vc.channel.id if vc and vc.channel else 0
+
+    @property
+    def connected(self) -> bool:
+        """Check if the voice client is still connected."""
+        return self.vc is not None and self.vc.is_connected()
+
+    def is_text_chat_of_this_vc(self, channel) -> bool:
+        """Check if a text channel is the side-chat linked to this bot's VC."""
+        if not channel or not self.vc or not self.vc.channel:
+            return False
+        try:
+            if hasattr(channel, 'id') and channel.id == self._vc_channel_id:
+                return True
+            if self.vc.channel and hasattr(self.vc.channel, 'id'):
+                return channel.id == self.vc.channel.id
+        except Exception:
+            pass
+        return False
 
     def set_identity(self, bot_id, bot_name, tts_personality):
         self.bot_id = bot_id
@@ -285,9 +306,32 @@ class VoiceSession:
         finally:
             _unlock_state(lock)
 
+    def mark_bot_text_received(self):
+        """Mark that a bot-to-bot message was received (cooldown/reset)."""
+        pass
+
     async def start_listening(self):
         self.listening = True
         logger.info("Voice listening started")
+
+    async def play_tts(self, text: str) -> Optional[str]:
+        """Generate TTS and play it through the voice client."""
+        if not self._tts_generate or not text:
+            return None
+        try:
+            tts_path = await self._tts_generate(text)
+            if tts_path and os.path.exists(tts_path) and self.connected:
+                source = discord.FFmpegPCMAudio(tts_path)
+                if self.vc and not self.vc.is_playing():
+                    self.vc.play(source)
+                return tts_path
+        except Exception as e:
+            logger.warning(f"TTS playback failed: {e}")
+        return None
+
+    def stop_audio(self):
+        if self.vc and self.vc.is_playing():
+            self.vc.stop()
 
 class VoiceManager:
     def __init__(self):

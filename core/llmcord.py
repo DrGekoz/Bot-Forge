@@ -863,8 +863,8 @@ async def on_voice_state_update(
             )
             # Recreate session with the new voice client
             # The existing .vc object is still valid after move_to(), so just
-            # update the speaker's reference
-            session._speaker.set_callbacks(session.vc, session._tts_cb)
+            # update the channel reference
+            pass
 
 
 # ═══════════════════════════════════════════════════════════
