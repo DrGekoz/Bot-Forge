@@ -41,6 +41,7 @@ Every game mode runs with file-based turn management (no Discord message spam be
 |------|---------|-------------|
 | **20 Questions** ❓ | 1 Picker + 2+ Guessers + 1 Referee | One bot secretly picks a person/place/thing, others ask yes/no questions to guess it within 20 tries |
 | **Auction House** 🏪 | 1 Auctioneer + 2+ Bidders | Fast-talking auctioneer sells bizarre items, bidders compete with virtual budgets |
+| **Comedy Roast Battle** 🎤 | 1 Emcee + 2+ Comedians + 1 Referee | Terrible jokes, heckling, referee silently scores |
 | **Council** 🏛️ | 2+ Members + 1 Referee | Evidence-gated consensus building with blind review |
 | **Debate Arena** 🎙️ | 2+ Debaters + 1 Referee | Structured debate with silent scoring + winner declaration |
 | **Dream Interpretation** 🌙 | 1 Dreamer + 2 Analysts + 1 Referee | Bots interpret surreal AI dreams through Freudian vs Cosmic lenses, scored by a referee |
