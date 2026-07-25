@@ -447,7 +447,20 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
         await interaction.response.defer(ephemeral=True)
         gid = interaction.guild_id; session = voice_manager.get_session(gid)
         if not session: return await interaction.followup.send("Not in VC.", ephemeral=True)
-        if action.lower() == "stop":
+        a = action.lower()
+        if a == "start":
+            if session.group_mode:
+                return await interaction.followup.send("Group mode already active.", ephemeral=True)
+            vc_channel = session.vc.channel if session.vc else None
+            bot_ids = [m.id for m in vc_channel.members if m.bot] if vc_channel else []
+            if len(bot_ids) < 2:
+                return await interaction.followup.send("Need at least 2 bots in VC.", ephemeral=True)
+            turn_order = bot_ids
+            voice_manager.set_group_config(gid, turn_order, active=True)
+            other_ids = [b for b in turn_order if b != _BOT_ID]
+            session.enable_group_mode(_BOT_ID, _BOT_NAME, _TTS_PERSONALITY, other_ids)
+            await interaction.followup.send(f"Group mode started! {len(bot_ids)} bots in rotation.", ephemeral=True)
+        elif a == "stop":
             session.disable_group_mode()
             voice_manager.set_group_config(gid, [], active=False)
             await interaction.followup.send("Group mode stopped.", ephemeral=True)
