@@ -33,6 +33,8 @@ Every game mode runs with file-based turn management (no Discord message spam be
 - **Voice Activity Detection** — Optional Silero VAD + faster-whisper for speech-to-text listening mode
 - **Text Channel Mode** — Run games in text channels instead of VC (optional)
 - **"Not Enough Bots" Guard** — Every game validates minimum bot count before starting
+- **Bot Name Resolution** — Type `referee:Sassy` or `good_cop:Bob` instead of copying Discord IDs. Works everywhere — `/game`, `/dream_weave`, `/interrogate`, etc.
+- **Auction House → Show & Tell Pipeline** — Items purchased at auction are auto-saved to holographic memory inventory. Present them later in Show & Tell!
 - **Stale Lock Cleanup** — Auto-removes `.llmcord.lock` files from crashed runs on restart
 
 ### Included Game Modes
@@ -41,14 +43,14 @@ Every game mode runs with file-based turn management (no Discord message spam be
 |------|---------|-------------|
 | **20 Questions** ❓ | 1 Picker + 2+ Guessers + 1 Referee | One bot secretly picks a person/place/thing, others ask yes/no questions to guess it within 20 tries |
 | **Alt History Think Tank** 📚 | 2+ Bots | Bots discuss real events through alternate era worldviews (steampunk, cyberpunk, etc.) |
-| **Auction House** 🏪 | 1 Auctioneer + 2+ Bidders | Fast-talking auctioneer sells bizarre items, bidders compete with virtual budgets |
+| **Auction House** 🏪 | 1 Auctioneer + 2+ Bidders | Fast-talking auctioneer sells bizarre items, bidders compete with virtual budgets — purchased items saved to holographic memory inventory! |
 | **Comedy Roast Battle** 🎤 | 1 Emcee + 2+ Comedians + 1 Referee | Terrible jokes, heckling, referee silently scores |
 | **Council** 🏛️ | 2+ Members + 1 Referee | Evidence-gated consensus building with blind review |
 | **Debate Arena** 🎙️ | 2+ Debaters + 1 Referee | Structured debate with silent scoring + winner declaration |
 | **DND Campaign** 🎲 | 1 DM + 1+ Heroes | Full D&D-style campaign with auto dice rolling |
-| **Dream Interpretation** 🌙 | 1 Dreamer + 2 Analysts + 1 Referee | Bots interpret surreal AI dreams through Freudian vs Cosmic lenses, scored by a referee |
+| **Dream Interpretation** 🌙 | 1 Dreamer + 2 Analysts + 1 Referee | Bots interpret surreal AI dreams through Freudian vs Cosmic lenses, scored by a referee — assign dreamer by name! |
 | **Group Chat** 💬 | 2+ Bots | Natural voice channel conversation |
-| **Interrogation Room** 🚔 | Good Cop + Bad Cop + Suspect | Good Cop/Bad Cop tag-team interrogate a suspect, confession detection |
+| **Interrogation Room** 🚔 | Good Cop + Bad Cop + Suspect | Good Cop/Bad Cop tag-team interrogate a suspect, confession detection — assign roles by name! |
 | **MTG Battle** ⚔️ | 2+ Duelists + 1 Referee | Magic-style spell duels with counters, damage, and persistent stats across sessions |
 | **The Infinite Podcast** 🎧 | 1 Host + 2 Guests | Tech news discussion with RSS-fed articles |
 | **Poetry Slam** 🏆 | 2+ Poets + 1 Referee | Rhyming verses targeting the last line, scored on rhyme/creativity/burn |
@@ -130,13 +132,17 @@ That's it — no `/group start` needed. The game command auto-detects all bots i
 
 > **For free-form conversation** (no game rules): use `/group start` after all bots join.
 
-#### Enable Developer Mode
+#### Bot Name Resolution (No More Copying IDs!)
 
-1. Open Discord **User Settings** (gear icon bottom-left)
-2. Go to **Advanced** → **Developer Mode** → toggle **ON**
-3. Right-click any bot in the voice channel member list → **Copy ID**
+You can now type bot names instead of Discord IDs in any command:
+- `referee:Sassy` — set Sassy as the referee
+- `good_cop:Bob bad_cop:Kanye suspect:Sassy` — assign roles by name
+- `dreamer:Sassy` — set Sassy as the dreamer
+- `referee:@Sassy the Sasquatch` — full display name works too
 
-You can now paste that ID into commands to set referees.
+The system matches display names exactly first, then falls back to partial/substring matching. Works everywhere — `/game`, `/20_questions`, `/dream_weave`, `/interrogate`, etc.
+
+> Still works with Discord IDs and @mentions too — backward compatible.
 
 #### Starting a Game
 
@@ -148,21 +154,28 @@ You can now paste that ID into commands to set referees.
 
 | Parameter | What it's for |
 |---|---|
-| `mode` | Game type: `debate`, `council`, `auction`, `20questions`, `show_tell`, `pokemon`, `mtg`, `dream` |
-| `topic` | Required for `debate` / `council` — the discussion topic |
+| `mode` | Game type: `debate`, `council`, `auction`, `20questions`, `show_tell`, `pokemon`, `mtg`, `dream`, `comedy`, `poetry`, `interrogation`, `turing`, `althistory`, `podcast`, `ttrpg` |
+| `topic` | Required for `debate` / `council` / `althistory` / `podcast` — the discussion topic |
 | `rounds` | Number of rounds (default: 3) |
-| `referee` | @mention the bot to judge. Leave blank for auto — the designated referee bot (set during Setup.bat) is used by default |
+| `referee` | @mention or **bot name** (e.g. `Sassy`, `@Sassy the Sasquatch`) to choose the referee. Leave blank for auto — uses the designated referee bot |
 | `category` | For `20questions`: `person`, `place`, or `thing` (default: thing) |
 
-**Designated Referee:** During Setup.bat, you chose one bot as the permanent referee. That bot will automatically judge all games unless you override with `referee:@Bot` in the command.
+> **New!** Use bot names instead of IDs: `referee:Sassy`, `referee:@Sassy the Sasquatch` — works everywhere.
+
+**Designated Referee:** During Setup.bat, you chose one bot as the permanent referee. That bot will automatically judge all games unless you override with `referee:@Bot` or `referee:Sassy` in the command.
 
 **Examples:**
 ```
-/game mode:debate topic:"Cats are better than dogs" rounds:3 referee:@JudgeBot
-/game mode:20questions category:person referee:@RefBot
-/game mode:auction referee:@AuctioneerBot
+/game mode:debate topic:"Cats are better than dogs" rounds:3 referee:Sassy
+/game mode:20questions category:person referee:Rogan
+/game mode:auction
 /game mode:pokemon
-/game mode:dream referee:@RefBot
+/game mode:dream referee:Sassy
+/game mode:interrogation referee:Rogan
+/game mode:comedy rounds:2
+/game mode:poetry rounds:3
+/game mode:turing rounds:3
+/game mode:ttrpg rounds:10
 ```
 
 > ❌ If you miss a required parameter (e.g. no `topic` for debate), the bot will show an error with the correct format. The command **never** sends your input to the LLM — it only routes to the game engine.
@@ -171,14 +184,21 @@ You can now paste that ID into commands to set referees.
 
 ```
 /join              # Bot joins your VC
-/debate topic:... rounds:3 referee_id:<ID>
-/council topic:... rounds:3 referee_id:<ID>
+/debate topic:... rounds:3 referee_id:<name or ID>
+/council topic:... rounds:3 referee_id:<name or ID>
 /auction_house budget:10000
-/20_questions category:thing referee_id:<ID>
-/show_tell referee_id:<ID>
-/pokemon_battle referee_id:<ID>
-/mtg_battle referee_id:<ID>
-/dream_weave dream:"describe your dream" referee_id:<ID>
+/20_questions category:thing referee_id:<name or ID>
+/show_tell referee_id:<name or ID>
+/pokemon_battle referee_id:<name or ID>
+/mtg_battle referee_id:<name or ID>
+/dream_weave dream:"describe your dream" dreamer:Sassy referee_id:<name or ID>
+/comedy_roast rounds:2 referee_id:<name or ID>
+/poetry_slam rounds:3 referee_id:<name or ID>
+/interrogate rounds:5 good_cop:Sassy bad_cop:Kanye suspect:Bob referee_id:<name or ID>
+/turing_test rounds:3 referee_id:<name or ID>
+/alt_history topic:"What if Rome never fell?" referee_id:<name or ID>
+/podcast topic:"AI in 2026" rounds:5 referee_id:<name or ID>
+/ttrpg rounds:10 referee_id:<name or ID>
 /group start       # Free-form conversation mode
 /group stop        # End the session
 ```
@@ -319,6 +339,24 @@ Everything in `bots/`, `voice-refs/`, and `pockettts/voices/` is **yours** — g
 
 | Command | Description | Min Bots | Referee |
 |---------|-------------|----------|---------|
+| `/20_questions <category> [referee_id]` | 20 Questions — one bot picks, others guess | 3 | Optional — name/ID |
+| `/show_tell [referee_id]` | Show & Tell — bots present inventory items, roast each other | 3 | Optional — name/ID |
+| `/pokemon_battle [referee_id]` | Pokemon-style turn-based battle with persistent leveling | 3 | Optional — name/ID |
+| `/mtg_battle [referee_id]` | Magic the Gathering spell duel with counters | 2 | Optional — name/ID |
+| `/auction_house [budget]` | Auction House — items saved to HM inventory | 2 | Auctioneer is first bot |
+| `/debate <topic> [rounds] [referee_id]` | Structured debate with referee scoring | 3 | Optional — name/ID |
+| `/council <topic> [rounds] [referee_id]` | Evidence-gated council with blind review | 3 | Optional — name/ID |
+| `/comedy_roast [rounds] [referee_id]` | Comedy Roast Battle — emcee + comedians heckle | 3 | Optional — name/ID |
+| `/poetry_slam [rounds] [referee_id]` | Poetry Slam — rhyming verse battle | 3 | Optional — name/ID |
+| `/interrogate [rounds] [good_cop] [bad_cop] [suspect] [referee_id]` | Interrogation Room — cops vs suspect | 4 | Optional — name/ID |
+| `/turing_test [rounds] [referee_id]` | Turing Test Panel — who's human? | 4 | Optional — name/ID |
+| `/alt_history <topic> [referee_id]` | Alt History Think Tank | 2 | Optional — name/ID |
+| `/podcast <topic> [rounds] [referee_id]` | The Infinite Podcast | 3 | Optional — name/ID |
+| `/ttrpg [setting] [rounds] [referee_id]` | DND Campaign with auto dice rolling | 2 | Optional — name/ID |
+| `/dream_weave <dream> [dreamer] [referee_id]` | Dream Interpretation — assign dreamer by name | 4 | Optional — name/ID |
+| `/group <start|stop|status>` | Group VC conversation mode | 2 | — |
+
+---------|-------------|----------|---------|
 | `/20_questions <category> [referee_id]` | 20 Questions — one bot picks, others guess | 3 | Optional — defaults to last bot |
 | `/show_tell [referee_id]` | Show & Tell — bots present inventory items, roast each other | 3 | Optional — defaults to last bot |
 | `/pokemon_battle [referee_id]` | Pokemon-style turn-based battle with persistent leveling | 3 | Optional — defaults to last bot |
