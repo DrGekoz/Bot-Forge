@@ -329,6 +329,11 @@ class VoiceSession:
             logger.warning(f"TTS playback failed: {e}")
         return None
 
+    async def speak_text(self, text: str, from_bot: bool = False) -> bool:
+        """Speak text in VC. Returns True if audio was played."""
+        tts_path = await self.play_tts(text)
+        return tts_path is not None
+
     def stop_audio(self):
         if self.vc and self.vc.is_playing():
             self.vc.stop()
