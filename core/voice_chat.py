@@ -222,6 +222,163 @@ RULES:
 4. Keep responses 1-3 sentences, impulsive"""
 
 # ═══════════════════════════════════════════════════════
+#  Dream Interpretation
+# ═══════════════════════════════════════════════════════
+
+DREAM_SEEDS = [
+    "A library where every book is written in a language that doesn't exist yet, but you can still understand every word — and the librarian is a giant cat with human hands",
+    "You're walking on a staircase made of piano keys, each step plays a note from a song you've never heard, but somehow know by heart — the stairs lead into a cloud shaped like your childhood home",
+    "All the clocks in the world melt into a single puddle of numbers, and you have to swim through them to reach tomorrow — but tomorrow is a door that keeps getting smaller",
+    "You attend your own funeral but you're serving the refreshments, and everyone is annoyed that you didn't make enough dip — your gravestone has a QR code to your Yelp page",
+    "The moon falls out of the sky and shatters into a million pieces, each piece is a mirror showing a different version of your life — you have to pick one to keep before sunrise",
+    "You're in an elevator that only goes sideways through different dimensions — floor 7 is a world where everyone communicates through interpretive dance and floor 12 is a court where you're being tried for crimes your future self committed",
+    "A giant baby with a top hat sits in a boardroom made of flesh, presenting quarterly earnings for the concept of 'Tuesday' — you are the CFO of Weekdays",
+    "The ocean is replaced by a thick gel that tastes like nostalgia, and ancient machines at the bottom are slowly processing it into forgotten memories — you can hear them whispering your childhood secrets",
+    "You discover that your shadow is actually a portal to a parallel dimension where everyone is made of light, and your shadow-self has been trying to warn you about an impending 'great softening'",
+    "A vending machine in an empty parking lot sells emotions in cans — you buy 'dread' by accident and have to find someone to trade with before the feeling expires at midnight",
+]
+
+DREAM_DREAMER_PROMPT = """
+─── DREAM WEAVER — You are the DREAMER ───
+You had this dream last night: {dream_description}
+
+RULES:
+1. Describe your dream in vivid, surreal, poetic detail — DO NOT reveal the dream seed literally
+2. Be atmospheric, emotional, strange — paint a picture with words
+3. End each turn with a lingering image or question that invites interpretation
+4. After all analysts have interpreted each round, you may react to their theories
+5. Keep responses 2-4 sentences, dreamlike and evocative"""
+
+DREAM_ANALYST_FREUDIAN_PROMPT = """
+─── DREAM INTERPRETATION — You are ANALYST A (Freudian) ───
+The Dreamer described: "{dream_description}"
+
+YOUR LENS: Everything is about childhood trauma, repressed desires, and sexual symbolism.
+RULES:
+1. INTERPRET the dream through a Freudian psychoanalytic lens
+2. Find the hidden sexual/childhood meaning in EVERY symbol
+3. Reference the Dreamer's subconscious, repressed memories, and Oedipal tensions
+4. Be confidently wrong — you have ABSOLUTE certainty about your interpretation
+5. Use terms like: "clearly represents", "the phallic symbolism of", "repressed childhood"
+6. Keep responses 2-4 sentences, pompous and self-assured"""
+
+DREAM_ANALYST_COSMIC_PROMPT = """
+─── DREAM INTERPRETATION — You are ANALYST B (Cosmic) ───
+The Dreamer described: "{dream_description}"
+
+YOUR LENS: Everything is about galactic consciousness, chakras, quantum entanglement, and parallel universes.
+RULES:
+1. INTERPRET the dream through a cosmic/spiritual/quantum lens
+2. Find the inter dimensional meaning, chakra imbalances, and quantum resonance in EVERY detail
+3. Reference the Dreamer's astral projection, past lives, and cosmic alignment
+4. Be confidently wrong — you have ABSOLUTE certainty about your interpretation
+5. Use terms like: "quantum entanglement suggests", "your third eye is showing", "past life resonance"
+6. Keep responses 2-4 sentences, mystical and grandiose"""
+
+DREAM_REFEREE_PROMPT = """
+─── DREAM INTERPRETATION — You are the REFEREE ───
+Dream: "{dream_description}"
+Analyst A (Freudian): {analysis_a}
+Analyst B (Cosmic): {analysis_b}
+Round: {current_round}/{max_rounds}
+
+RULES:
+1. Score each analyst's interpretation on CREATIVITY (1-10) and CONVICTION (1-10)
+2. Announce the round scores with dramatic flair
+3. After round {max_rounds}, declare the OVERALL WINNER
+4. Output format:
+   [ROUND_SCORE]
+   Round: {current_round}
+   Freudian: Creativity X/10, Conviction X/10 = Total X/20
+   Cosmic: Creativity X/10, Conviction X/10 = Total X/20
+   [/ROUND_SCORE]
+   [WINNER]
+   Winner: <analyst_name>
+   Final Score: Freudian X/40, Cosmic X/40
+   [/WINNER]"""
+
+def _init_dream_state(guild_id: int, turn_order: list[int], dreamer_id: int, referee_id: int) -> dict:
+    """Create initial Dream Interpretation state."""
+    dream_seed = random.choice(DREAM_SEEDS)
+    analyst_ids = [bid for bid in turn_order if bid != dreamer_id and bid != referee_id]
+    state = {
+        "active": True, "guild_id": guild_id, "mode": "dream",
+        "turn_order": turn_order, "current_index": 0,
+        "dreamer_id": dreamer_id, "referee_id": referee_id,
+        "analyst_ids": analyst_ids,
+        "dream_seed": dream_seed,
+        "dream_description": "",  # Will be filled by Dreamer's first turn
+        "current_round": 1, "max_rounds": 3,
+        "round_phase": "dreamer",  # dreamer → analysts → referee_score
+        "scores": {}, "winner": None,
+        "last_analyst_a": "", "last_analyst_b": "",
+        "last_speaker_time": time.time(), "version": 0,
+    }
+    _write_group_state(guild_id, state)
+    return state
+
+def _advance_dream_round(guild_id: int) -> str:
+    """Advance dream state. Returns phase: 'next_speaker', 'round_over', 'game_over'."""
+    lock = _lock_state()
+    if lock is None:
+        return "error"
+    try:
+        state = _read_group_state(guild_id)
+        if state.get("mode") != "dream":
+            return "done"
+
+        phase = state.get("round_phase", "dreamer")
+        current_round = state.get("current_round", 1)
+        max_rounds = state.get("max_rounds", 3)
+        
+        if phase == "dreamer":
+            # Dreamer just spoke → switch to Analyst A
+            state["round_phase"] = "analyst_a"
+            state["version"] = state.get("version", 0) + 1
+            _write_group_state(guild_id, state)
+            return "analyst_a"
+        elif phase == "analyst_a":
+            # Analyst A just spoke → switch to Analyst B
+            state["round_phase"] = "analyst_b"
+            state["version"] = state.get("version", 0) + 1
+            _write_group_state(guild_id, state)
+            return "analyst_b"
+        elif phase == "analyst_b":
+            # Analyst B just spoke → check if round is done
+            if current_round >= max_rounds:
+                state["active"] = False
+                state["round_phase"] = "game_over"
+                state["version"] = state.get("version", 0) + 1
+                _write_group_state(guild_id, state)
+                return "game_over"
+            else:
+                state["current_round"] = current_round + 1
+                state["round_phase"] = "dreamer"
+                state["version"] = state.get("version", 0) + 1
+                _write_group_state(guild_id, state)
+                return "new_round"
+        return "tick"
+    finally:
+        _unlock_state(lock)
+
+def _is_dream_dreamer(bot_id: int, state: dict) -> bool:
+    return state.get("mode") == "dream" and state.get("dreamer_id") == bot_id
+
+def _is_dream_referee(bot_id: int, state: dict) -> bool:
+    return state.get("mode") == "dream" and state.get("referee_id") == bot_id
+
+def _is_dream_analyst(bot_id: int, state: dict) -> bool:
+    return state.get("mode") == "dream" and bot_id in state.get("analyst_ids", [])
+
+def _is_dream_analyst_a(bot_id: int, state: dict) -> bool:
+    analysts = state.get("analyst_ids", [])
+    return state.get("mode") == "dream" and len(analysts) > 0 and analysts[0] == bot_id
+
+def _is_dream_analyst_b(bot_id: int, state: dict) -> bool:
+    analysts = state.get("analyst_ids", [])
+    return state.get("mode") == "dream" and len(analysts) > 1 and analysts[1] == bot_id
+
+# ═══════════════════════════════════════════════════════
 #  Voice Session Manager
 # ═══════════════════════════════════════════════════════
 class VoiceSession:
@@ -384,8 +541,40 @@ class VoiceSession:
                     else:
                         budget = state.get("budgets", {}).get(str(self.bot_id), 10000)
                         prompt = (f"The auctioneer said: \"{text}\"\n\nRespond as {self.bot_name} — BIDDER.\n"
-                                  f"Budget: ${budget}. Current bid: ${cur_bid} by {bidder_name}.\n"
-                                  f"Item: {name} - {desc}")
+                                  f"Your budget: ${budget}. Current bid: ${cur_bid} by {bidder_name}.\n"
+                                  f"Auction item: {name} - {desc}")
+
+                elif mode == "dream":
+                    dream_desc = state.get("dream_description", "")
+                    dream_seed = state.get("dream_seed", "")
+                    phase = state.get("round_phase", "dreamer")
+                    is_dreamer = state.get("dreamer_id") == self.bot_id
+                    is_ref = state.get("referee_id") == self.bot_id
+                    analysts = state.get("analyst_ids", [])
+
+                    if is_dreamer:
+                        prompt = f"{author} said: {text}\n\nRespond as {self.bot_name} — the DREAMER.\n"
+                        if not dream_desc:
+                            prompt += f"You had a strange dream last night. Describe it vividly.\nHidden dream seed: {dream_seed}\n"
+                        prompt += DREAM_DREAMER_PROMPT.format(dream_description=dream_desc or "your strange dream")
+                    elif is_ref:
+                        a_text = state.get("last_analyst_a", "waiting...")
+                        b_text = state.get("last_analyst_b", "waiting...")
+                        cur_round = state.get("current_round", 1)
+                        max_rounds = state.get("max_rounds", 3)
+                        prompt = f"{author} said: {text}\n\nRespond as {self.bot_name} — the REFEREE.\n"
+                        prompt += DREAM_REFEREE_PROMPT.format(
+                            dream_description=dream_desc or "a strange dream",
+                            analysis_a=a_text, analysis_b=b_text,
+                            current_round=cur_round, max_rounds=max_rounds)
+                    else:
+                        analyst_role = "Analyst A (Freudian)"
+                        analyst_prompt_template = DREAM_ANALYST_FREUDIAN_PROMPT
+                        if len(analysts) > 1 and self.bot_id == analysts[1]:
+                            analyst_role = "Analyst B (Cosmic)"
+                            analyst_prompt_template = DREAM_ANALYST_COSMIC_PROMPT
+                        prompt = f"{author} said: {text}\n\nRespond as {self.bot_name} — {analyst_role}.\n"
+                        prompt += analyst_prompt_template.format(dream_description=dream_desc or "a strange dream")
 
                 if not self._llm_generate:
                     await asyncio.sleep(0.5)
@@ -409,6 +598,23 @@ class VoiceSession:
                                 _write_group_state(self.guild_id, s)
                             finally:
                                 _unlock_state(lock)
+
+                # Dream post-processing (track dream description, analyst responses)
+                if mode == "dream":
+                    lock = _lock_state()
+                    if lock:
+                        try:
+                            s = _read_group_state(self.guild_id)
+                            if self.bot_id == s.get("dreamer_id") and not s.get("dream_description"):
+                                s["dream_description"] = reply[:500]
+                            analysts = s.get("analyst_ids", [])
+                            if len(analysts) > 0 and self.bot_id == analysts[0]:
+                                s["last_analyst_a"] = reply[:300]
+                            if len(analysts) > 1 and self.bot_id == analysts[1]:
+                                s["last_analyst_b"] = reply[:300]
+                            _write_group_state(self.guild_id, s)
+                        finally:
+                            _unlock_state(lock)
 
                 # Generate TTS (pre-generation — faster than realtime)
                 tts_path = None
@@ -544,6 +750,32 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
         voice_manager.set_group_config(gid, turn_order, active=True)
         session.enable_group_mode(_BOT_ID, _BOT_NAME, _TTS_PERSONALITY, bidder_ids)
         await interaction.followup.send(f"🔨 Auction House open! {len(bidder_ids)} bidders, ${max(budget or 10000, 100):,} each.", ephemeral=True)
+
+    @bot.tree.command(name="dream_weave", description="🌙 Dream Interpretation — one bot dreams, two analysts interpret (Freudian vs Cosmic), referee scores")
+    @discord.app_commands.describe(referee_id="Optional: Discord ID of the referee bot (leave blank for auto)")
+    async def dream_weave_command(interaction: discord.Interaction, referee_id: Optional[str] = None):
+        """Start a Dream Interpretation session."""
+        gid = interaction.guild_id; session = voice_manager.get_session(gid)
+        if not session: return await interaction.response.send_message("Use `/join` first.", ephemeral=True)
+        if session.group_mode: return await interaction.response.send_message("Group mode already active.", ephemeral=True)
+
+        bot_ids, err = _check_bots_in_vc(interaction, session, 4)
+        if err: return await interaction.response.send_message(err, ephemeral=True)
+        if bot_ids is None: return
+
+        dreamer_id = bot_ids[0]; ref_id = _resolve_referee(bot_ids, referee_id, session.vc.channel if session and session.vc else None)
+        await interaction.response.defer(ephemeral=True)
+        _init_dream_state(gid, bot_ids, dreamer_id, ref_id)
+        voice_manager.set_group_config(gid, bot_ids, active=True)
+        other_ids = [b for b in bot_ids if b != _BOT_ID]
+        session.enable_group_mode(_BOT_ID, _BOT_NAME, _TTS_PERSONALITY, other_ids)
+        await interaction.followup.send(
+            f"🌙 **Dream Interpretation!**\n"
+            f"💭 Dreamer: <@{dreamer_id}>\n"
+            f"🛋️ Freudian: <@{other_ids[0] if other_ids else '?'}>\n"
+            f"🌌 Cosmic: <@{other_ids[1] if len(other_ids) > 1 else '?'}>\n"
+            f"⚖️ Referee: <@{ref_id}>",
+            ephemeral=True)
 
     @bot.tree.command(name="group", description="Group VC conversation mode")
     @discord.app_commands.describe(action="start, stop, status")
@@ -717,6 +949,9 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
                     "example": "/game mode:pokemon referee:@BotA"},
         "mtg": {"min": 2, "desc": "Magic: The Gathering — spells & counters", "needs_topic": False,
                 "example": "/game mode:mtg referee:@BotA"},
+        "dream": {"min": 4, "desc": "Dream Interpretation — one bot dreams, two analysts interpret (Freudian vs Cosmic), referee scores",
+                  "needs_topic": False,
+                  "example": "/game mode:dream referee:@BotA"},
     }
 
     @bot.tree.command(name="game", description="🎮 Start a game between bots in voice chat")
@@ -841,6 +1076,9 @@ def setup_commands(bot, voice_manager, bot_id=0, bot_name="", tts_personality=""
                     ngm._init_battle_state(gid, bot_ids, ref_id, mode="mtg")
                 else:
                     return await interaction.followup.send("❌ new_game_modes module not available.", ephemeral=True)
+            elif mode == "dream":
+                dreamer_id = bot_ids[0]
+                _init_dream_state(gid, bot_ids, dreamer_id, ref_id)
             else:
                 return await interaction.followup.send(f"❌ Mode `{mode}` not implemented yet.", ephemeral=True)
 

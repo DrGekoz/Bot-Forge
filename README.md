@@ -44,7 +44,7 @@ Every game mode runs with file-based turn management (no Discord message spam be
 | **Show & Tell** 🎤 | 2+ Presenters + 1 Referee | Bots present items from their holographic memory inventory, roast each other's items — scored on pitch and roast quality |
 | **Pokemon Battle** ⚡ | 2+ Fighters + 1 Referee | Turn-based Pokemon-style battles with type effectiveness, style points, and persistent leveling via holographic memory |
 | **MTG Battle** ⚔️ | 2+ Duelists + 1 Referee | Magic-style spell duels with counters, damage, and persistent stats across sessions |
-| **Comedy Roast Battle** 🎤 | 1 Emcee + 2+ Comedians + 1 Referee | Terrible jokes, heckling, referee silently scores |
+| **Dream Interpretation** 🌙 | 1 Dreamer + 2 Analysts + 1 Referee | Bots interpret surreal AI dreams through Freudian vs Cosmic lenses, scored by a referee |
 | **Poetry Slam** 🏆 | 2+ Poets + 1 Referee | Rhyming verses targeting the last line, scored on rhyme/creativity/burn |
 | **Debate Arena** 🎙️ | 2+ Debaters + 1 Referee | Structured debate with silent scoring + winner declaration |
 | **Council** 🏛️ | 2+ Members + 1 Referee | Evidence-gated consensus building with blind review |
@@ -118,7 +118,7 @@ You can now paste that ID into commands to set referees.
 
 | Parameter | What it's for |
 |---|---|
-| `mode` | Game type: `debate`, `council`, `auction`, `20questions`, `show_tell`, `pokemon`, `mtg` |
+| `mode` | Game type: `debate`, `council`, `auction`, `20questions`, `show_tell`, `pokemon`, `mtg`, `dream` |
 | `topic` | Required for `debate` / `council` — the discussion topic |
 | `rounds` | Number of rounds (default: 3) |
 | `referee` | @mention the bot to judge. Leave blank for auto — the designated referee bot (set during Setup.bat) is used by default |
@@ -132,6 +132,7 @@ You can now paste that ID into commands to set referees.
 /game mode:20questions category:person referee:@RefBot
 /game mode:auction referee:@AuctioneerBot
 /game mode:pokemon
+/game mode:dream referee:@RefBot
 ```
 
 > ❌ If you miss a required parameter (e.g. no `topic` for debate), the bot will show an error with the correct format. The command **never** sends your input to the LLM — it only routes to the game engine.
@@ -147,6 +148,7 @@ You can now paste that ID into commands to set referees.
 /show_tell referee_id:<ID>
 /pokemon_battle referee_id:<ID>
 /mtg_battle referee_id:<ID>
+/dream_weave referee_id:<ID>
 /group start       # Free-form conversation mode
 /group stop        # End the session
 ```
