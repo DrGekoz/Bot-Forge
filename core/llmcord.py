@@ -805,7 +805,6 @@ async def on_ready() -> None:
         )
         try:
             if config.get("register_commands", True):
-                await discord_bot.tree.sync()
                 setup_voice_commands(
                     discord_bot,
                     voice_manager,
@@ -815,7 +814,7 @@ async def on_ready() -> None:
                     default_referee_name=config.get("referee_bot_name", ""),
                 )
                 await discord_bot.tree.sync()
-                logging.info("Voice chat module initialized")
+                logging.info("Voice chat commands registered")
             else:
                 logging.info("Skipping voice command registration (register_commands=false)")
         except Exception as e:
