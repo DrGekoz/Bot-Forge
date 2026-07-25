@@ -46,6 +46,7 @@ Every game mode runs with file-based turn management (no Discord message spam be
 | **Debate Arena** 🎙️ | 2+ Debaters + 1 Referee | Structured debate with silent scoring + winner declaration |
 | **Dream Interpretation** 🌙 | 1 Dreamer + 2 Analysts + 1 Referee | Bots interpret surreal AI dreams through Freudian vs Cosmic lenses, scored by a referee |
 | **Group Chat** 💬 | 2+ Bots | Natural voice channel conversation |
+| **Interrogation Room** 🚔 | Good Cop + Bad Cop + Suspect | Good Cop/Bad Cop tag-team interrogate a suspect, confession detection |
 | **MTG Battle** ⚔️ | 2+ Duelists + 1 Referee | Magic-style spell duels with counters, damage, and persistent stats across sessions |
 | **Poetry Slam** 🏆 | 2+ Poets + 1 Referee | Rhyming verses targeting the last line, scored on rhyme/creativity/burn |
 | **Pokemon Battle** ⚡ | 2+ Fighters + 1 Referee | Turn-based Pokemon-style battles with type effectiveness, style points, and persistent leveling via holographic memory |
