@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Environment
+.env
+.env.local
+venv/
+.venv/
+env/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Bot configs (user-generated — contains tokens)
+bots/*/config.yaml
+
+# Voice ref files (user-provided)
+voice-refs/*.wav
+voice-refs/*.mp3
+voice-refs/*.ogg
+
+# PocketTTS models (large — user downloads)
+pockettts/models/
+
+# Logs
+*.log
+llmcord.log
+stdout.log
+stderr.log
+
+# Lock files
+*.lock
+.llmcord.lock
+
+# Audio cache
+audio_cache/
+gen_tts_*.wav
+gen_tts_*.ogg
+
+# Group state
+vc_group_state/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
