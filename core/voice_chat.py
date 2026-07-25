@@ -269,6 +269,11 @@ class VoiceSession:
         self.bot_name = bot_name
         self.tts_personality = tts_personality
         self.other_bot_ids = other_bot_ids
+        self._last_processed_version = -1
+        if self._poll_task:
+            self._poll_task.cancel()
+        if self._llm_generate and self._tts_generate:
+            self._poll_task = asyncio.ensure_future(self._poll_loop())
 
     def disable_group_mode(self):
         self.group_mode = False
@@ -337,6 +342,101 @@ class VoiceSession:
     def stop_audio(self):
         if self.vc and self.vc.is_playing():
             self.vc.stop()
+
+    async def _poll_loop(self):
+        """Background task: polls group state, generates LLM+TTS on turn, plays sequentially.
+        Each bot is independent — while this bot plays TTS in VC, other bots generate in parallel.
+        Games can finish computationally before audio finishes playing.
+        """
+        while self.group_mode:
+            try:
+                state = _read_group_state(self.guild_id)
+                if not state.get("active", False):
+                    await asyncio.sleep(0.3)
+                    continue
+                version = state.get("version", 0)
+                if version <= self._last_processed_version:
+                    await asyncio.sleep(0.3)
+                    continue
+                if not self.is_my_turn(state):
+                    await asyncio.sleep(0.3)
+                    continue
+                self._last_processed_version = version
+                mode = state.get("mode", "group")
+                author = state.get("last_message", {}).get("author_name", "System")
+                text = state.get("last_message", {}).get("text", "")
+                prompt = f"{author} said: {text}\n\nRespond as {self.bot_name}."
+
+                if mode == "auction":
+                    is_auk = state.get("auctioneer_id") == self.bot_id
+                    items = state.get("items", [])
+                    idx = state.get("current_item_index", 0)
+                    name = items[idx][0] if items and idx < len(items) else "?"
+                    desc = items[idx][1] if items and idx < len(items) else ""
+                    min_bid = items[idx][2] if items and idx < len(items) else 50
+                    cur_bid = state.get("current_bid", 0)
+                    bidder_name = state.get("current_bidder_name", "no one")
+                    if is_auk:
+                        rules = AUCTION_RULES_AUCTIONEER.format(
+                            item_num=idx+1, current_item=name, description=desc,
+                            minimum_bid=min_bid, current_bid=cur_bid, current_bidder_name=bidder_name)
+                        prompt = f"{author} said: {text}\n\nRespond as {self.bot_name} — AUCTIONEER.\n{rules}"
+                    else:
+                        budget = state.get("budgets", {}).get(str(self.bot_id), 10000)
+                        prompt = (f"The auctioneer said: \"{text}\"\n\nRespond as {self.bot_name} — BIDDER.\n"
+                                  f"Budget: ${budget}. Current bid: ${cur_bid} by {bidder_name}.\n"
+                                  f"Item: {name} - {desc}")
+
+                if not self._llm_generate:
+                    await asyncio.sleep(0.5)
+                    continue
+                resp = await self._llm_generate([{"role": "user", "content": prompt}])
+                reply = "".join(resp).strip() if resp else f"I've got nothing to add, {author}."
+
+                # Auction bid tracking
+                if mode == "auction" and state.get("auctioneer_id") != self.bot_id:
+                    m = __import__('re').search(r'\$(\d+)', reply)
+                    if m:
+                        lock = _lock_state()
+                        if lock:
+                            try:
+                                s = _read_group_state(self.guild_id)
+                                bidder_str = str(self.bot_id)
+                                s["current_bid"] = int(m.group(1))
+                                s["current_bidder_id"] = self.bot_id
+                                s["current_bidder_name"] = self.bot_name
+                                s["budgets"][bidder_str] = s.get("budgets", {}).get(bidder_str, 0) - int(m.group(1))
+                                _write_group_state(self.guild_id, s)
+                            finally:
+                                _unlock_state(lock)
+
+                # Generate TTS (pre-generation — faster than realtime)
+                tts_path = None
+                if self._tts_generate and reply:
+                    try:
+                        tts_path = await self._tts_generate(reply)
+                    except Exception:
+                        pass
+
+                # Play in VC sequentially with 0.5s gap
+                if tts_path and os.path.exists(tts_path) and self.connected:
+                    source = discord.FFmpegPCMAudio(tts_path)
+                    if self.vc and not self.vc.is_playing():
+                        self.vc.play(source)
+                        while self.vc and self.vc.is_playing():
+                            await asyncio.sleep(0.1)
+                    await asyncio.sleep(0.5)
+
+                self.advance_turn(self.guild_id, last_text=reply)
+
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.warning(f"Poll loop: {e}")
+                await asyncio.sleep(1.0)
+
+    def mark_bot_text_received(self):
+        pass
 
 class VoiceManager:
     def __init__(self):
